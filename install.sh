@@ -10,7 +10,7 @@ fi
 read -p "Enter your owner tag: " owner_tag
 
 # Install Python and pip if not already installed
-apt-get update
+
 apt-get install -y python3 python3-pip
 
 # Install required Python packages
