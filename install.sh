@@ -14,8 +14,15 @@ apt-get update
 apt-get install -y python3 python3-pip
 
 # Install required Python packages
-pip3 install requests
-python3 -m pip install psutil
+if ! pip3 install requests; then
+    echo "Failed to install requests"
+    exit 1
+fi
+
+if ! python3 -m pip install psutil; then
+    echo "Failed to install psutil"
+    exit 1
+fi
 
 # Create directory for TigPublisher
 mkdir -p /opt/tigpublisher
