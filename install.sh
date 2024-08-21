@@ -42,7 +42,7 @@ args = parser.parse_args()
 # Configuration
 SERVER_URL = "http://192.99.13.55:5000/update"
 UPDATE_INTERVAL = 1
-THREAD_COUNT_CMD = '''pgrep -f "tig-benchmarker 0xdbc262a7f3f03033da8c4addf9630fb6186718b3 83e5a8baad01ba664d65b0fddd8e7c1e" | xargs -I{} ps -o nlwp= -p {} 2>/dev/null | awk '{s+=$1} END {print s ? s-1 : 0}' '''
+THREAD_COUNT_CMD = '''pgrep -f "tig-benchmarker 0xdbc262a7f3f03033da8c4addf9630fb6186718b3 83e5a8baad01ba664d65b0fddd8e7c1e" | xargs -I{} ps -o nlwp= -p {} | awk '{s+=$1} END {print s-1}' '''
 IP_SERVICES = [
     "https://api.ipify.org",
     "https://ifconfig.me/ip",
@@ -67,7 +67,7 @@ IP_CACHE_DURATION = 300  # 5 minutes
 def get_thread_count():
     try:
         result = subprocess.run(THREAD_COUNT_CMD, shell=True, capture_output=True, text=True, check=True)
-        return int(result.stdout.strip())
+        return max(int(result.stdout.strip()), 0)  # Ensure non-negative
     except subprocess.CalledProcessError as e:
         logging.error(f"Error getting thread count: {e}")
         return 0
