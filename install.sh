@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Check if running as root
+# Force root user
 if [ "$EUID" -ne 0 ]; then
     echo "Please run as root"
     exit 1
@@ -19,7 +19,7 @@ pip3 install requests
 # Create directory for TigPublisher
 mkdir -p /opt/tigpublisher
 
-# Download the TigPublisher script
+# Create TigPublisher script
 cat > /opt/tigpublisher/tigpublisher.py << EOL
 import requests
 import subprocess
@@ -30,7 +30,7 @@ import uuid
 import argparse
 
 # Set up logging
-logging.basicConfig(filename='/tmp/tigpublisher.log', level=logging.INFO,
+logging.basicConfig(filename='/root/tigpublisher.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Parse command-line arguments
@@ -120,6 +120,7 @@ def main():
     logging.info(f"Starting TigPublisher for owner: {args.ownertag}, Machine ID: {MACHINE_ID}")
     print(f"TigPublisher started for owner: {args.ownertag}")
     print(f"Machine ID: {MACHINE_ID}")
+    print("Logs are being written to: /root/tigpublisher.log")
     print("Sending updates every second. Press Ctrl+C to stop.")
     
     try:
@@ -145,7 +146,9 @@ After=network.target
 [Service]
 ExecStart=/usr/bin/python3 /opt/tigpublisher/tigpublisher.py --ownertag ${owner_tag}
 Restart=always
-User=nobody
+User=root
+StandardOutput=append:/root/tigpublisher.log
+StandardError=append:/root/tigpublisher.log
 
 [Install]
 WantedBy=multi-user.target
@@ -158,4 +161,5 @@ systemctl start tigpublisher.service
 
 echo "TigPublisher has been installed and started. It will automatically run on system startup."
 echo "You can check its status with: systemctl status tigpublisher.service"
-echo "Logs are available at: /tmp/tigpublisher.log"
+echo "Logs are available at: /root/tigpublisher.log"
+echo "Logs are available at: /root/tigpublisher.log"
