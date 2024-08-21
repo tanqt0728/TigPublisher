@@ -29,6 +29,7 @@ import logging
 import uuid
 import argparse
 import os
+import psutil
 
 # Set up logging
 logging.basicConfig(filename='/root/tigpublisher.log', level=logging.INFO,
@@ -65,18 +66,20 @@ last_ip_check = 0
 IP_CACHE_DURATION = 300  # 5 minutes
 
 def get_thread_count():
+    target_string = "tig-benchmarker 0xdbc262a7f3f03033da8c4addf9630fb6186718b3 83e5a8baad01ba664d65b0fddd8e7c1e"
+    total_threads = 0
+
     try:
-        target_string = "tig-benchmarker 0xdbc262a7f3f03033da8c4addf9630fb6186718b3 83e5a8baad01ba664d65b0fddd8e7c1e"
-        total_threads = 0
-        
-        for proc in psutil.process_iter(['name', 'cmdline']):
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
                 if proc.info['name'] == 'tig-benchmarker' or (proc.info['cmdline'] and target_string in ' '.join(proc.info['cmdline'])):
-                    total_threads += proc.num_threads() - 1  # Subtract 1 to exclude the main thread
+                    # Subtract 1 from thread count to exclude the main thread
+                    total_threads += max(proc.num_threads() - 1, 0)
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
+                continue
         
-        return max(total_threads, 0)  # Ensure non-negative count
+        return total_threads
+
     except Exception as e:
         logging.error(f"Error getting thread count: {e}")
         return 0
