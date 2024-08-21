@@ -28,6 +28,7 @@ import time
 import logging
 import uuid
 import argparse
+import os
 
 # Set up logging
 logging.basicConfig(filename='/root/tigpublisher.log', level=logging.INFO,
@@ -48,8 +49,15 @@ IP_SERVICES = [
     "https://icanhazip.com"
 ]
 
-# Generate a unique identifier for this machine
-MACHINE_ID = str(uuid.uuid4())
+# Generate or load a unique identifier for this machine
+MACHINE_ID_FILE = '/opt/tigpublisher/machine_id'
+if os.path.exists(MACHINE_ID_FILE):
+    with open(MACHINE_ID_FILE, 'r') as f:
+        MACHINE_ID = f.read().strip()
+else:
+    MACHINE_ID = str(uuid.uuid4())
+    with open(MACHINE_ID_FILE, 'w') as f:
+        f.write(MACHINE_ID)
 
 # Cache for public IP
 cached_ip = None
@@ -112,7 +120,7 @@ def send_update():
     try:
         response = requests.post(SERVER_URL, json=data, timeout=10)
         response.raise_for_status()
-        logging.info("Update sent successfully")
+        logging.info(f"Update sent successfully: {data}")
     except requests.RequestException as e:
         logging.error(f"Failed to send update: {e}")
 
@@ -162,4 +170,4 @@ systemctl start tigpublisher.service
 echo "TigPublisher has been installed and started. It will automatically run on system startup."
 echo "You can check its status with: systemctl status tigpublisher.service"
 echo "Logs are available at: /root/tigpublisher.log"
-echo "Logs are available at: /root/tigpublisher.log"
+echo "The persistent Machine ID is stored at: /opt/tigpublisher/machine_id"
