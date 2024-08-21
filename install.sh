@@ -65,22 +65,22 @@ last_ip_check = 0
 IP_CACHE_DURATION = 300  # 5 minutes
 
 def get_thread_count():
-    cmd = (
-        "pgrep -f 'tig-benchmarker 0xdbc262a7f3f03033da8c4addf9630fb6186718b3 83e5a8baad01ba664d65b0fddd8e7c1e' "
-        "| xargs -r -n1 ps -o nlwp= -p 2>/dev/null "
-        "| awk '{s+=$1} END {print s ? s-1 : 0}'"
-    )
-    
     try:
-        result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
-        count = int(result.stdout.strip())
-        return max(count, 0)  # Ensure non-negative count
-    except subprocess.CalledProcessError:
-        logging.warning("tig-benchmarker process not found or error in command execution. Thread count set to 0.")
+        target_string = "tig-benchmarker 0xdbc262a7f3f03033da8c4addf9630fb6186718b3 83e5a8baad01ba664d65b0fddd8e7c1e"
+        total_threads = 0
+        
+        for proc in psutil.process_iter(['name', 'cmdline']):
+            try:
+                if proc.info['name'] == 'tig-benchmarker' or (proc.info['cmdline'] and target_string in ' '.join(proc.info['cmdline'])):
+                    total_threads += proc.num_threads() - 1  # Subtract 1 to exclude the main thread
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        
+        return max(total_threads, 0)  # Ensure non-negative count
+    except Exception as e:
+        logging.error(f"Error getting thread count: {e}")
         return 0
-    except ValueError as e:
-        logging.error(f"Error parsing thread count: {e}")
-        return 0
+
 
 def get_public_ip():
     global cached_ip, last_ip_check
