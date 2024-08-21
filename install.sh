@@ -41,11 +41,20 @@ args = parser.parse_args()
 # Configuration
 SERVER_URL = "http://192.99.13.55:5000/update"
 UPDATE_INTERVAL = 1
-THREAD_COUNT_CMD = '''pgrep -f "tig-benchmarker 0xdbc262a7f3f03033da8c4addf9630fb6186718b3 83e5a8baad01ba664d65b0fddd8e7c1e" | xargs -I{} ps -o nlwp= -p {} | awk '{s+=$1} END {print s-1}' '''
-PUBLIC_IP_URL = "https://api.ipify.org"
+THREAD_COUNT_CMD = '''pgrep -f "tig-benchmarker 0xdbc262a7f3f03033da8c4addf9630fb6186718b3 83e5a8baad01ba664d65b0fddd8e7c1e" | xargs -I{} ps -o nlwp= -p {} 2>/dev/null | awk '{s+=$1} END {print s ? s-1 : 0}' '''
+IP_SERVICES = [
+    "https://api.ipify.org",
+    "https://ifconfig.me/ip",
+    "https://icanhazip.com"
+]
 
 # Generate a unique identifier for this machine
 MACHINE_ID = str(uuid.uuid4())
+
+# Cache for public IP
+cached_ip = None
+last_ip_check = 0
+IP_CACHE_DURATION = 300  # 5 minutes
 
 def get_thread_count():
     try:
@@ -55,13 +64,29 @@ def get_thread_count():
         logging.error(f"Error getting thread count: {e}")
         return 0
 
+def get_public_ip():
+    global cached_ip, last_ip_check
+    current_time = time.time()
+    
+    if cached_ip and (current_time - last_ip_check) < IP_CACHE_DURATION:
+        return cached_ip
+
+    for service in IP_SERVICES:
+        try:
+            response = requests.get(service, timeout=10)
+            if response.status_code == 200:
+                cached_ip = response.text.strip()
+                last_ip_check = current_time
+                return cached_ip
+        except requests.RequestException as e:
+            logging.warning(f"Failed to get IP from {service}: {e}")
+    
+    logging.error("Failed to get public IP from all services")
+    return "Unknown"
+
 def get_ip_addresses():
     hostname = socket.gethostname()
-    try:
-        internet_ip = requests.get(PUBLIC_IP_URL, timeout=5).text
-    except requests.RequestException as e:
-        logging.error(f"Error getting public IP: {e}")
-        internet_ip = "Unknown"
+    internet_ip = get_public_ip()
     
     try:
         intranet_ip = socket.gethostbyname(hostname)
