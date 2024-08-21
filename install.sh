@@ -65,24 +65,16 @@ last_ip_check = 0
 IP_CACHE_DURATION = 300  # 5 minutes
 
 def get_thread_count():
+    cmd = f"pgrep -f '{PROCESS_NAME}' | xargs -I{{}} ps -o nlwp= -p {{}} | awk '{{s+=$1}} END {{print s-1}}'"
     try:
-        # Get PIDs of the process
-        pids = subprocess.check_output(["pgrep", "-f", PROCESS_NAME]).decode().strip().split()
-        
-        if not pids:
-            logging.warning(f"No processes found matching: {PROCESS_NAME}")
-            return 0
-        
-        total_threads = 0
-        for pid in pids:
-            # Get thread count for each PID
-            threads = int(subprocess.check_output(["ps", "-o", "nlwp=", "-p", pid]).decode().strip())
-            total_threads += threads
-        
-        # Subtract 1 from the total as per the original command
-        return max(total_threads - 1, 0)
+        result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+        count = int(result.stdout.strip())
+        return max(count, 0)  # Ensure non-negative
     except subprocess.CalledProcessError as e:
         logging.error(f"Error getting thread count: {e}")
+        return 0
+    except ValueError as e:
+        logging.error(f"Error parsing thread count: {e}")
         return 0
 
 def get_public_ip():
