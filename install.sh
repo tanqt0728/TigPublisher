@@ -67,7 +67,7 @@ IP_CACHE_DURATION = 300  # 5 minutes
 def get_thread_count():
     cmd = (
         "pgrep -f 'tig-benchmarker 0xdbc262a7f3f03033da8c4addf9630fb6186718b3 83e5a8baad01ba664d65b0fddd8e7c1e' "
-        "| xargs -I{} ps -o nlwp= -p {} | awk '{s+=$1} END {print s-1}'"
+        "| xargs -r -I{} ps -o nlwp= -p {} 2>/dev/null | awk '{s+=$1} END {print s ? s-1 : 0}'"
     )
     try:
         result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
