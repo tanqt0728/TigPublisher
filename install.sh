@@ -65,11 +65,14 @@ last_ip_check = 0
 IP_CACHE_DURATION = 300  # 5 minutes
 
 def get_thread_count():
-    cmd = f"pgrep -f '{PROCESS_NAME}' | xargs -I{{}} ps -o nlwp= -p {{}} | awk '{{s+=$1}} END {{print s-1}}'"
+    cmd = (
+        "pgrep -f 'tig-benchmarker 0xdbc262a7f3f03033da8c4addf9630fb6186718b3 83e5a8baad01ba664d65b0fddd8e7c1e' "
+        "| xargs -I{} ps -o nlwp= -p {} | awk '{s+=$1} END {print s-1}'"
+    )
     try:
         result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
         count = int(result.stdout.strip())
-        return max(count, 0)  # Ensure non-negative
+        return max(count, 0)  # Ensure non-negative count
     except subprocess.CalledProcessError as e:
         logging.error(f"Error getting thread count: {e}")
         return 0
